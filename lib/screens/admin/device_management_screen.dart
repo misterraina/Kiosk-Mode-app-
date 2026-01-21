@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/admin_provider.dart';
+import '../../providers/device_provider.dart';
 import '../../services/admin_api_service.dart';
 import '../../models/device.dart';
+import '../punch_screen.dart';
 
 class DeviceManagementScreen extends StatefulWidget {
   const DeviceManagementScreen({super.key});
@@ -155,6 +157,98 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
           SnackBar(
             content: Text(result['error'] ?? 'Failed to generate code'),
             backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _activateDevice(Device device) async {
+    final adminProvider = Provider.of<AdminProvider>(context, listen: false);
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Activating device...'),
+          ],
+        ),
+      ),
+    );
+
+    final result = await _apiService.activateDevice(
+      adminProvider.adminToken!,
+      device.deviceCode,
+    );
+
+    if (mounted) {
+      Navigator.pop(context); // Close loading dialog
+      
+      if (result['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Device activated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _loadDevices(); // Refresh device list
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['error'] ?? 'Failed to activate device'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _openDeviceScreen(Device device) async {
+    if (!device.isActive) {
+      // If device is inactive, ask to activate it
+      final shouldActivate = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Device Inactive'),
+          content: Text(
+            'Device "${device.location}" is not active. Would you like to activate it now?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Activate Now'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldActivate == true && mounted) {
+        await _activateDevice(device);
+      }
+      return;
+    }
+
+    // Device is active, set it in DeviceProvider and navigate to punch screen
+    if (mounted) {
+      final deviceProvider = Provider.of<DeviceProvider>(context, listen: false);
+      
+      // Set this device as the active device for the punch screen
+      await deviceProvider.setDeviceForAdmin(device);
+      
+      // Navigate to punch screen in kiosk mode
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const PunchScreen(isRemoteMode: false),
           ),
         );
       }
@@ -317,18 +411,23 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
                                 style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                               subtitle: Text('Code: ${device.deviceCode}'),
-                              trailing: Chip(
-                                label: Text(
-                                  device.isActive ? 'Active' : 'Inactive',
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                                backgroundColor: device.isActive
-                                    ? Colors.green.shade100
-                                    : Colors.grey.shade200,
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Chip(
+                                    label: Text(
+                                      device.isActive ? 'Active' : 'Inactive',
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                    backgroundColor: device.isActive
+                                        ? Colors.green.shade100
+                                        : Colors.grey.shade200,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.chevron_right),
+                                ],
                               ),
-                              onTap: !device.isActive
-                                  ? () => _generateCodeForExistingDevice(device)
-                                  : null,
+                              onTap: () => _openDeviceScreen(device),
                             ),
                           );
                         },

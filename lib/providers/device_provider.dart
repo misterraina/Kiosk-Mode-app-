@@ -8,13 +8,15 @@ class DeviceProvider with ChangeNotifier {
   final StorageService _storageService = StorageService();
 
   Device? _device;
-  String? _deviceToken;
+  int? _deviceId;
+  bool _isKioskMode = false;
   bool _isActivated = false;
   bool _isLoading = false;
   String? _error;
 
   Device? get device => _device;
-  String? get deviceToken => _deviceToken;
+  int? get deviceId => _deviceId;
+  bool get isKioskMode => _isKioskMode;
   bool get isActivated => _isActivated;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -22,10 +24,11 @@ class DeviceProvider with ChangeNotifier {
   Future<void> initialize() async {
     _isLoading = true;
 
-    _deviceToken = await _storageService.getDeviceToken();
+    _deviceId = await _storageService.getDeviceId();
+    _isKioskMode = await _storageService.isKioskModeEnabled();
     final deviceInfo = await _storageService.getDeviceInfo();
 
-    if (_deviceToken != null && deviceInfo != null) {
+    if (_deviceId != null && deviceInfo != null) {
       _device = Device(
         id: deviceInfo['id'],
         deviceCode: deviceInfo['code'],
@@ -46,11 +49,11 @@ class DeviceProvider with ChangeNotifier {
     final result = await _apiService.activateDevice(deviceCode, adminToken);
 
     if (result['success']) {
-      _deviceToken = result['deviceToken'];
       _device = result['device'];
+      _deviceId = _device!.id;
       _isActivated = true;
 
-      await _storageService.saveDeviceToken(_deviceToken!);
+      await _storageService.saveDeviceId(_deviceId!);
       await _storageService.saveDeviceInfo(
         _device!.id,
         _device!.deviceCode,
@@ -76,11 +79,11 @@ class DeviceProvider with ChangeNotifier {
     final result = await _apiService.activateDeviceWithCode(activationCode);
 
     if (result['success']) {
-      _deviceToken = result['deviceToken'];
       _device = result['device'];
+      _deviceId = _device!.id;
       _isActivated = true;
 
-      await _storageService.saveDeviceToken(_deviceToken!);
+      await _storageService.saveDeviceId(_deviceId!);
       await _storageService.saveDeviceInfo(
         _device!.id,
         _device!.deviceCode,
@@ -98,11 +101,34 @@ class DeviceProvider with ChangeNotifier {
     }
   }
 
+  Future<void> setKioskMode(bool enabled) async {
+    _isKioskMode = enabled;
+    await _storageService.setKioskMode(enabled);
+    notifyListeners();
+  }
+
   Future<void> deactivateDevice() async {
     await _storageService.clearDeviceData();
     _device = null;
-    _deviceToken = null;
+    _deviceId = null;
     _isActivated = false;
+    _isKioskMode = false;
+    notifyListeners();
+  }
+
+  Future<void> setDeviceForAdmin(Device device) async {
+    _device = device;
+    _deviceId = device.id;
+    _isActivated = true;
+    _isKioskMode = false;
+    
+    await _storageService.saveDeviceId(_deviceId!);
+    await _storageService.saveDeviceInfo(
+      _device!.id,
+      _device!.deviceCode,
+      _device!.location,
+    );
+    
     notifyListeners();
   }
 }

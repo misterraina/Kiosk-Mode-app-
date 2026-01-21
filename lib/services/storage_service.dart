@@ -5,6 +5,7 @@ class StorageService {
   static const String _deviceCodeKey = 'device_code';
   static const String _deviceLocationKey = 'device_location';
   static const String _deviceIdKey = 'device_id';
+  static const String _deviceIdOnlyKey = 'device_id_only';
   static const String _adminTokenKey = 'admin_token';
   static const String _adminIdKey = 'admin_id';
   static const String _adminEmailKey = 'admin_email';
@@ -19,6 +20,16 @@ class StorageService {
   Future<String?> getDeviceToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_deviceTokenKey);
+  }
+
+  Future<void> saveDeviceId(int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_deviceIdOnlyKey, id);
+  }
+
+  Future<int?> getDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_deviceIdOnlyKey);
   }
 
   Future<void> saveDeviceInfo(int id, String code, String location) async {
@@ -50,11 +61,13 @@ class StorageService {
     await prefs.remove(_deviceCodeKey);
     await prefs.remove(_deviceLocationKey);
     await prefs.remove(_deviceIdKey);
+    await prefs.remove(_deviceIdOnlyKey);
+    await prefs.remove(_kioskModeKey);
   }
 
   Future<bool> isDeviceActivated() async {
-    final token = await getDeviceToken();
-    return token != null && token.isNotEmpty;
+    final deviceId = await getDeviceId();
+    return deviceId != null;
   }
 
   Future<void> saveAdminToken(String token) async {

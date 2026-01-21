@@ -4,11 +4,13 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/device_provider.dart';
 import '../providers/punch_provider.dart';
-import '../services/kiosk_service.dart';
 import 'device_activation_screen.dart';
+import 'admin/admin_login_screen.dart';
 
 class PunchScreen extends StatefulWidget {
-  const PunchScreen({super.key});
+  final bool isRemoteMode;
+  
+  const PunchScreen({super.key, this.isRemoteMode = false});
 
   @override
   State<PunchScreen> createState() => _PunchScreenState();
@@ -16,114 +18,19 @@ class PunchScreen extends StatefulWidget {
 
 class _PunchScreenState extends State<PunchScreen> {
   final _userIdController = TextEditingController();
-  final KioskService _kioskService = KioskService();
-  bool _isKioskMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
 
   @override
   void dispose() {
-    if (_isKioskMode) {
-      _kioskService.disableKioskMode();
-    }
     _userIdController.dispose();
     super.dispose();
   }
 
-  Future<void> _showAdminPasswordDialog(bool enableKiosk) async {
-    final passwordController = TextEditingController();
-    bool isPasswordVisible = false;
-
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(enableKiosk ? 'Enable Kiosk Mode' : 'Disable Kiosk Mode'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                enableKiosk
-                    ? 'Enter admin password to lock device in kiosk mode'
-                    : 'Enter admin password to exit kiosk mode',
-                style: const TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: passwordController,
-                obscureText: !isPasswordVisible,
-                decoration: InputDecoration(
-                  labelText: 'Admin Password',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      isPasswordVisible ? Icons.visibility_off : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        isPasswordVisible = !isPasswordVisible;
-                      });
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // Simple password check (you can make this more secure)
-                if (passwordController.text == 'admin123') {
-                  Navigator.pop(context, true);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Incorrect password'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              child: const Text('Confirm'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (result == true && mounted) {
-      if (enableKiosk) {
-        await _kioskService.enableKioskMode();
-        setState(() {
-          _isKioskMode = true;
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Kiosk mode enabled'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
-        await _kioskService.disableKioskMode();
-        setState(() {
-          _isKioskMode = false;
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Kiosk mode disabled'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-      }
-    }
-  }
 
   Future<void> _handlePunchIn() async {
     if (_userIdController.text.trim().isEmpty) {
@@ -150,7 +57,12 @@ class _PunchScreenState extends State<PunchScreen> {
       return;
     }
 
-    final success = await punchProvider.punchIn(userId, deviceProvider.deviceToken!);
+    // Pass deviceId only if in kiosk mode and device is activated
+    final deviceId = (deviceProvider.isKioskMode && deviceProvider.deviceId != null) 
+        ? deviceProvider.deviceId 
+        : null;
+
+    final success = await punchProvider.punchIn(userId, deviceId: deviceId);
 
     if (mounted) {
       if (success) {
@@ -197,7 +109,12 @@ class _PunchScreenState extends State<PunchScreen> {
       return;
     }
 
-    final success = await punchProvider.punchOut(userId, deviceProvider.deviceToken!);
+    // Pass deviceId only if in kiosk mode and device is activated
+    final deviceId = (deviceProvider.isKioskMode && deviceProvider.deviceId != null) 
+        ? deviceProvider.deviceId 
+        : null;
+
+    final success = await punchProvider.punchOut(userId, deviceId: deviceId);
 
     if (mounted) {
       if (success) {
@@ -263,61 +180,37 @@ class _PunchScreenState extends State<PunchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: !_isKioskMode,
-      onPopInvoked: (didPop) async {
-        if (!didPop && _isKioskMode) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Kiosk mode is active. Cannot exit.'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-      },
-      child: Scaffold(
+    return Scaffold(
         appBar: AppBar(
-          title: Row(
-            children: [
-              const Text('Punch In/Out'),
-              if (_isKioskMode) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.orange,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
+          title: const Text('Punch In/Out'),
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
+          automaticallyImplyLeading: true,
+          actions: [
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: (value) {
+                if (value == 'admin') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AdminLoginScreen(),
+                    ),
+                  );
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'admin',
+                  child: Row(
                     children: [
-                      Icon(Icons.lock, size: 14, color: Colors.white),
-                      SizedBox(width: 4),
-                      Text(
-                        'KIOSK',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
+                      Icon(Icons.admin_panel_settings, color: Colors.orange),
+                      SizedBox(width: 12),
+                      Text('Admin Panel'),
                     ],
                   ),
                 ),
               ],
-            ],
-          ),
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
-          automaticallyImplyLeading: !_isKioskMode,
-          actions: [
-            IconButton(
-              icon: Icon(_isKioskMode ? Icons.lock_open : Icons.lock),
-              onPressed: () => _showAdminPasswordDialog(!_isKioskMode),
-              tooltip: _isKioskMode ? 'Disable Kiosk Mode' : 'Enable Kiosk Mode',
             ),
-            if (!_isKioskMode)
-              IconButton(
-                icon: const Icon(Icons.logout),
-                onPressed: _deactivateDevice,
-                tooltip: 'Deactivate Device',
-              ),
           ],
         ),
       body: Consumer2<DeviceProvider, PunchProvider>(
@@ -327,34 +220,6 @@ class _PunchScreenState extends State<PunchScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Card(
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.devices, color: Colors.blue.shade700),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Device Information',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Divider(),
-                        _buildInfoRow('Device Code', deviceProvider.device?.deviceCode ?? 'N/A'),
-                        _buildInfoRow('Location', deviceProvider.device?.location ?? 'N/A'),
-                        _buildInfoRow('Status', deviceProvider.device?.isActive == true ? 'Active' : 'Inactive'),
-                      ],
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 24),
                 Card(
                   elevation: 2,
@@ -480,7 +345,6 @@ class _PunchScreenState extends State<PunchScreen> {
             ),
           );
         },
-      ),
       ),
     );
   }

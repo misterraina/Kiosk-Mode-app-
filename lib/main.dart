@@ -3,8 +3,6 @@ import 'package:provider/provider.dart';
 import 'providers/device_provider.dart';
 import 'providers/punch_provider.dart';
 import 'providers/admin_provider.dart';
-import 'screens/mode_selection_screen.dart';
-import 'screens/device_activation_screen.dart';
 import 'screens/punch_screen.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
 
@@ -62,12 +60,12 @@ class _SplashScreenState extends State<SplashScreen> {
     if (mounted) {
       Widget destination;
       
+      // If admin is authenticated, go to admin dashboard
       if (adminProvider.isAuthenticated) {
         destination = const AdminDashboardScreen();
-      } else if (deviceProvider.isActivated) {
-        destination = const PunchScreen();
       } else {
-        destination = const ModeSelectionScreen();
+        // Default to Remote Punch Screen as main entry point
+        destination = const PunchScreen(isRemoteMode: true);
       }
 
       Navigator.of(context).pushReplacement(

@@ -21,7 +21,6 @@ class ApiService {
         final data = jsonDecode(response.body);
         return {
           'success': true,
-          'deviceToken': data['deviceToken'],
           'device': Device.fromJson(data['device']),
           'message': data['message'],
         };
@@ -54,7 +53,6 @@ class ApiService {
         final data = jsonDecode(response.body);
         return {
           'success': true,
-          'deviceToken': data['deviceToken'],
           'device': Device.fromJson(data['device']),
           'message': data['message'],
         };
@@ -73,15 +71,19 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> punchIn(int userId, String deviceToken) async {
+  Future<Map<String, dynamic>> punchIn(int userId, {int? deviceId}) async {
     try {
+      final body = <String, dynamic>{'userId': userId};
+      if (deviceId != null) {
+        body['deviceId'] = deviceId;
+      }
+
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.punchIn}'),
         headers: {
           'Content-Type': 'application/json',
-          'X-Device-Token': deviceToken,
         },
-        body: jsonEncode({'userId': userId}),
+        body: jsonEncode(body),
       );
 
       if (response.statusCode == 201) {
@@ -92,7 +94,8 @@ class ApiService {
             'message': data['message'],
             'punchRecord': PunchRecord.fromJson(data['punchRecord']),
             'user': User.fromJson(data['user']),
-            'device': Device.fromJson(data['device']),
+            'device': data['device'] != null ? Device.fromJson(data['device']) : null,
+            'mode': data['mode'],
           };
         } catch (parseError) {
           return {
@@ -115,15 +118,19 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> punchOut(int userId, String deviceToken) async {
+  Future<Map<String, dynamic>> punchOut(int userId, {int? deviceId}) async {
     try {
+      final body = <String, dynamic>{'userId': userId};
+      if (deviceId != null) {
+        body['deviceId'] = deviceId;
+      }
+
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.punchOut}'),
         headers: {
           'Content-Type': 'application/json',
-          'X-Device-Token': deviceToken,
         },
-        body: jsonEncode({'userId': userId}),
+        body: jsonEncode(body),
       );
 
       if (response.statusCode == 200) {
@@ -133,7 +140,8 @@ class ApiService {
             'success': true,
             'message': data['message'],
             'punchRecord': PunchRecord.fromJson(data['punchRecord']),
-            'device': Device.fromJson(data['device']),
+            'device': data['device'] != null ? Device.fromJson(data['device']) : null,
+            'mode': data['mode'],
           };
         } catch (parseError) {
           return {

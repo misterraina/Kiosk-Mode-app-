@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String baseUrl = 'http://192.168.1.2:3000';
+  static const String baseUrl = 'http://192.168.1.15:3000';
   
   static const String deviceActivate = '/api/devices/activate';
   static const String punchIn = '/api/punch/in';

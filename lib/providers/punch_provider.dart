@@ -25,13 +25,13 @@ class PunchProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> punchIn(int userId, String deviceToken) async {
+  Future<bool> punchIn(int userId, {int? deviceId}) async {
     _isLoading = true;
     _error = null;
     _successMessage = null;
     notifyListeners();
 
-    final result = await _apiService.punchIn(userId, deviceToken);
+    final result = await _apiService.punchIn(userId, deviceId: deviceId);
 
     if (result['success']) {
       _currentPunchRecord = result['punchRecord'];
@@ -48,13 +48,13 @@ class PunchProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> punchOut(int userId, String deviceToken) async {
+  Future<bool> punchOut(int userId, {int? deviceId}) async {
     _isLoading = true;
     _error = null;
     _successMessage = null;
     notifyListeners();
 
-    final result = await _apiService.punchOut(userId, deviceToken);
+    final result = await _apiService.punchOut(userId, deviceId: deviceId);
 
     if (result['success']) {
       _currentPunchRecord = result['punchRecord'];

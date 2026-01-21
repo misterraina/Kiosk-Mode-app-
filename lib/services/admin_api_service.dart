@@ -236,6 +236,53 @@ class AdminApiService {
     }
   }
 
+  Future<Map<String, dynamic>> activateDevice(String token, String deviceCode) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/api/devices/activate'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'deviceCode': deviceCode}),
+      );
+
+      if (response.statusCode == 200) {
+        try {
+          final data = jsonDecode(response.body);
+          return {
+            'success': true,
+            'device': Device.fromJson(data['device']),
+            'message': data['message'],
+          };
+        } catch (parseError) {
+          return {
+            'success': false,
+            'error': 'Response parsing error: $parseError',
+          };
+        }
+      } else {
+        try {
+          final error = jsonDecode(response.body);
+          return {
+            'success': false,
+            'error': error['error'] ?? 'Failed to activate device',
+          };
+        } catch (parseError) {
+          return {
+            'success': false,
+            'error': 'Server error (${response.statusCode}): ${response.body}',
+          };
+        }
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Network error: $e',
+      };
+    }
+  }
+
   Future<Map<String, dynamic>> createDevice(String token, Map<String, dynamic> deviceData) async {
     try {
       final response = await http.post(

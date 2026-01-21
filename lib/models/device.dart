@@ -16,9 +16,9 @@ class Device {
   factory Device.fromJson(Map<String, dynamic> json) {
     return Device(
       id: json['id'] as int? ?? 0,
-      deviceCode: json['deviceCode'] as String? ?? '',
+      deviceCode: (json['deviceCode'] ?? json['devicecode']) as String? ?? '',
       location: json['location'] as String? ?? '',
-      isActive: json['isActive'] as bool? ?? false,
+      isActive: (json['isActive'] ?? json['isactive']) as bool? ?? false,
       lastSeenAt: json['lastSeenAt'] != null
           ? DateTime.parse(json['lastSeenAt'] as String)
           : null,
