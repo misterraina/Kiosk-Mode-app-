@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/admin_provider.dart';
 import '../../services/admin_api_service.dart';
 import '../../models/user.dart';
+import 'face_enrollment_screen.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
@@ -84,34 +85,78 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
+              final employeeCode = employeeCodeController.text.trim();
+              final name = nameController.text.trim();
+
+              if (employeeCode.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Employee Code is required (e.g., EMP001)'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+
+              if (name.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Name is required'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+
               final adminProvider = Provider.of<AdminProvider>(context, listen: false);
               final result = await _apiService.createUser(
                 adminProvider.adminToken!,
                 {
-                  'employeeCode': employeeCodeController.text.trim(),
-                  'name': nameController.text.trim(),
+                  'employeeCode': employeeCode,
+                  'name': name,
                   'status': 'ACTIVE',
                 },
               );
 
-              if (mounted) {
+              if (!mounted) return;
+
+              if (result['success']) {
+                // Close the create user dialog first
                 Navigator.pop(context);
-                if (result['success']) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('User created successfully'),
-                      backgroundColor: Colors.green,
+                
+                // Show success message
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('User created successfully. Now enroll face...'),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+
+                // Navigate to face enrollment screen
+                final enrolled = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => FaceEnrollmentScreen(
+                      employeeCode: employeeCode,
+                      employeeName: name,
                     ),
-                  );
+                  ),
+                );
+
+                // Reload users after enrollment (whether successful or skipped)
+                if (mounted) {
                   _loadUsers();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(result['error']),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
                 }
+              } else {
+                // Close dialog and show error
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(result['error'] ?? 'Failed to create user'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
             child: const Text('Create'),
@@ -198,14 +243,38 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                 ),
                               ),
                               subtitle: Text('Code: ${user.employeeCode}'),
-                              trailing: Chip(
-                                label: Text(
-                                  user.status,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                                backgroundColor: user.status == 'ACTIVE'
-                                    ? Colors.green.shade100
-                                    : Colors.grey.shade200,
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.face, color: Colors.blue),
+                                    tooltip: 'Enroll Face',
+                                    onPressed: () async {
+                                      final enrolled = await Navigator.push<bool>(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => FaceEnrollmentScreen(
+                                            employeeCode: user.employeeCode,
+                                            employeeName: user.name,
+                                          ),
+                                        ),
+                                      );
+                                      if (enrolled == true && mounted) {
+                                        _loadUsers();
+                                      }
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Chip(
+                                    label: Text(
+                                      user.status,
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                    backgroundColor: user.status == 'ACTIVE'
+                                        ? Colors.green.shade100
+                                        : Colors.grey.shade200,
+                                  ),
+                                ],
                               ),
                             ),
                           );

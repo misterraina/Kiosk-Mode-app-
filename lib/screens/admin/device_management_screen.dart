@@ -4,7 +4,7 @@ import '../../providers/admin_provider.dart';
 import '../../providers/device_provider.dart';
 import '../../services/admin_api_service.dart';
 import '../../models/device.dart';
-import '../punch_screen.dart';
+import '../face_punch_screen.dart';
 
 class DeviceManagementScreen extends StatefulWidget {
   const DeviceManagementScreen({super.key});
@@ -248,7 +248,7 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
       if (mounted) {
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => const PunchScreen(isRemoteMode: false),
+            builder: (_) => const FacePunchScreen(),
           ),
         );
       }

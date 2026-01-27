@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/admin_provider.dart';
-import '../punch_screen.dart';
+import '../face_punch_screen.dart';
 import 'device_management_screen.dart';
 import 'user_management_screen.dart';
 
@@ -20,7 +20,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (mounted) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (_) => const PunchScreen(isRemoteMode: true),
+          builder: (_) => const FacePunchScreen(),
         ),
         (route) => false,
       );

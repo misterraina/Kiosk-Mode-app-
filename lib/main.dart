@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'providers/device_provider.dart';
 import 'providers/punch_provider.dart';
 import 'providers/admin_provider.dart';
-import 'screens/punch_screen.dart';
+import 'screens/face_punch_screen.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
 
 void main() {
@@ -64,8 +64,8 @@ class _SplashScreenState extends State<SplashScreen> {
       if (adminProvider.isAuthenticated) {
         destination = const AdminDashboardScreen();
       } else {
-        // Default to Remote Punch Screen as main entry point
-        destination = const PunchScreen(isRemoteMode: true);
+        // Default to Face Punch Screen as main entry point
+        destination = const FacePunchScreen();
       }
 
       Navigator.of(context).pushReplacement(

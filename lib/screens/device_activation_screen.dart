@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/device_provider.dart';
-import 'punch_screen.dart';
+import 'face_punch_screen.dart';
 
 class DeviceActivationScreen extends StatefulWidget {
   const DeviceActivationScreen({super.key});
@@ -30,7 +30,7 @@ class _DeviceActivationScreenState extends State<DeviceActivationScreen> {
 
       if (success && mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const PunchScreen()),
+          MaterialPageRoute(builder: (_) => const FacePunchScreen()),
         );
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
