@@ -77,9 +77,28 @@ class _FacePunchScreenState extends State<FacePunchScreen> {
     );
 
     if (!attendanceResult['success']) {
+      String errorMessage = attendanceResult['error'] ?? 'Face recognition failed';
+      
+      // If we have details (like from Automica API), use them for better UX
+      if (attendanceResult['details'] != null && attendanceResult['details'].isNotEmpty) {
+        if (attendanceResult['details'] is List) {
+          errorMessage = (attendanceResult['details'] as List).join(', ');
+        } else if (attendanceResult['details'] is String) {
+          errorMessage = attendanceResult['details'];
+        }
+      } else if (attendanceResult['reason_code'] != null) {
+        // Fallback for common reason codes if message is generic
+        final reason = attendanceResult['reason_code'].toString().toLowerCase();
+        if (reason.contains('quality')) {
+          errorMessage = 'Low Quality Image';
+        } else if (reason.contains('dark')) {
+          errorMessage = 'Image too dark';
+        }
+      }
+
       setState(() {
         _isLoading = false;
-        _errorMessage = attendanceResult['error'] ?? 'Face recognition failed';
+        _errorMessage = errorMessage;
       });
       return;
     }
@@ -294,21 +313,52 @@ class _FacePunchScreenState extends State<FacePunchScreen> {
                         const SizedBox(height: 20),
                         if (_errorMessage != null)
                           Container(
-                            padding: const EdgeInsets.all(12),
-                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            margin: const EdgeInsets.only(bottom: 20),
                             decoration: BoxDecoration(
-                              color: Colors.red[50],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.red[200]!),
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.red.shade200, width: 1.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.red.withOpacity(0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.error_outline, color: Colors.red),
-                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade100,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                                ),
+                                const SizedBox(width: 14),
                                 Expanded(
-                                  child: Text(
-                                    _errorMessage!,
-                                    style: const TextStyle(color: Colors.red),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Recognition Failed',
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _errorMessage!,
+                                        style: TextStyle(
+                                          color: Colors.red.shade900,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
@@ -316,21 +366,39 @@ class _FacePunchScreenState extends State<FacePunchScreen> {
                           ),
                         if (_successMessage != null)
                           Container(
-                            padding: const EdgeInsets.all(12),
-                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            margin: const EdgeInsets.only(bottom: 20),
                             decoration: BoxDecoration(
-                              color: Colors.green[50],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.green[200]!),
+                              color: Colors.green.shade50,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.green.shade200, width: 1.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.green.withOpacity(0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.check_circle, color: Colors.green),
-                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.shade100,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.check_circle_outline, color: Colors.green, size: 20),
+                                ),
+                                const SizedBox(width: 14),
                                 Expanded(
                                   child: Text(
                                     _successMessage!,
-                                    style: const TextStyle(color: Colors.green),
+                                    style: TextStyle(
+                                      color: Colors.green.shade900,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
                                   ),
                                 ),
                               ],

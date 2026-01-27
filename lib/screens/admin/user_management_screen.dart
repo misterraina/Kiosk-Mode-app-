@@ -4,6 +4,7 @@ import '../../providers/admin_provider.dart';
 import '../../services/admin_api_service.dart';
 import '../../models/user.dart';
 import 'face_enrollment_screen.dart';
+import 'attendance_logs_screen.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
@@ -262,6 +263,22 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                       if (enrolled == true && mounted) {
                                         _loadUsers();
                                       }
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    icon: const Icon(Icons.history, color: Colors.green),
+                                    tooltip: 'Attendance Logs',
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => AttendanceLogsScreen(
+                                            employeeCode: user.employeeCode,
+                                            employeeName: user.name,
+                                          ),
+                                        ),
+                                      );
                                     },
                                   ),
                                   const SizedBox(width: 8),

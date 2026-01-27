@@ -12,4 +12,5 @@ class ApiConfig {
   static const String faceAttendance = '/api/face/attendance';
   
   static String getUserByEmployeeCode(String employeeCode) => '/api/users/by-employee-code/$employeeCode';
+  static String getAttendanceLogs(String employeeCode) => '/api/users/$employeeCode/attendance';
 }

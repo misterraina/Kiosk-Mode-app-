@@ -330,4 +330,39 @@ class AdminApiService {
       };
     }
   }
+
+  Future<Map<String, dynamic>> getAttendanceLogs(String token, String employeeCode) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.getAttendanceLogs(employeeCode)}'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        List<dynamic> logs = [];
+        if (data['logs'] is List) {
+          logs = data['logs'];
+        } else if (data['logs'] is Map && data['logs']['logs'] is List) {
+          logs = data['logs']['logs'];
+        }
+
+        return {
+          'success': true,
+          'logs': logs,
+        };
+      } else {
+        final error = jsonDecode(response.body);
+        return {
+          'success': false,
+          'error': error['error'] ?? 'Failed to fetch attendance logs',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Network error: $e',
+      };
+    }
+  }
 }
